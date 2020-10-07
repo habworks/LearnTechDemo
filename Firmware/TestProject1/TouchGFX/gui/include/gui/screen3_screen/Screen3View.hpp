@@ -11,7 +11,7 @@ public:
     virtual ~Screen3View() {}
     virtual void setupScreen();
     virtual void tearDownScreen();
-    virtual void analogUpdate(float);
+    virtual void analogUpdate_View(float);
     virtual void updateScreen();
 protected:
 };

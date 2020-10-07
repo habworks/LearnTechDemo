@@ -20,7 +20,7 @@ void Screen3View::tearDownScreen()
 }
 
 
-void Screen3View::analogUpdate(float value)
+void Screen3View::analogUpdate_View(float value)
 {
 	memset(&textAreaADCBuffer, 0, TEXTAREAADC_SIZE);
 	Unicode::snprintfFloat(textAreaADCBuffer, sizeof(textAreaADCBuffer), "%.3f", (value * 805.7e-6));

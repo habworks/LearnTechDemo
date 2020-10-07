@@ -29,7 +29,7 @@ public:
 
     virtual ~Screen1Presenter() {};
 
-    virtual void uartMsgRdy();
+    virtual void uartMsgRdy_Presenter();
 
     virtual void buttonClicked(int button);
 

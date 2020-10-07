@@ -25,7 +25,7 @@ void Screen1View::tearDownScreen()
     Screen1ViewBase::tearDownScreen();
 }
 
-void Screen1View::uartMsgRdy()
+void Screen1View::uartMsgRdy_View()
 {
 
 	if (uartMsgBuf[0] == 0) return;

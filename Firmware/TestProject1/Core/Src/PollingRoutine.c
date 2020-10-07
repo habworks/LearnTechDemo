@@ -1,7 +1,10 @@
 /*
  * PollingRoutine.c
  * Hab Collector
- * Test1
+ * Working:
+ * 	UART6 in IRQ
+ * 	ADC in DMA
+ * 	RTC set time and get time (time is not accurate - but it does update)
  */
 
 #include "main.h"
@@ -33,6 +36,8 @@ uint8_t ADC_UpddateDisplay = 0;
 volatile uint8_t Flag1 = 0;
 volatile uint8_t Flag2 = 0;
 
+// FOR RTC
+extern RTC_HandleTypeDef hrtc;
 
 // FOR ALL
 Type_PresentScreen PresentScreen = OPEN_SCREEN;
@@ -49,6 +54,7 @@ const char ledOn[]= "LED ON\r\n";
 const char ledOff[] = "LED OFF\r\n";
 
 const char myString[100];
+char TimeString[100];
 
 
 // This is the init portion for the task StartTaskUartMsg
@@ -64,6 +70,12 @@ void PollingInit()
 void PollingRoutine()
 {
 	uint16_t item;
+	// Note about the clock.  The Asynchronous and Synchronous RTC clock divider must be configured such that they provide 1 Hz when applied to the RTC Clock
+	// If the RTC Clock is set to 32.768KHz then the dividers should be set to 127 and 255 respectively (+1 to both)
+	// See Figure 5 of ST document AN3371
+	RTC_TimeTypeDef PresentTime;
+	RTC_DateTypeDef PresentDate;
+	uint16_t FirstRead;
 	if (msgRdyFlag)
 	{
 		xSemaphoreGive(binarySemUartMsgHandle);
@@ -87,11 +99,24 @@ void PollingRoutine()
 			}
 			break;
 		case 2:
+			HAL_RTC_WaitForSynchro(&hrtc);
+			do // This while loop is needed or the get time will not update correctly
+			{
+				FirstRead = PresentTime.SubSeconds;
+				HAL_RTC_GetTime(&hrtc, &PresentTime, RTC_FORMAT_BIN);
+				HAL_RTC_GetDate(&hrtc, &PresentDate, RTC_FORMAT_BIN);
+			}while (FirstRead != PresentTime.SubSeconds);
+
+			memset(TimeString, 0, sizeof(TimeString));
+			sprintf(TimeString,"Time: %d : %d : %d :%d : %d\r\n",PresentTime.Hours, PresentTime.Minutes, PresentTime.Seconds, PresentTime.SubSeconds, PresentTime.SecondFraction);
 			strcat(myString, helloFromST);
 			strcat(myString, screen1);
 			break;
 		}
 		SendUartMsg(myString);
+		volatile uint8_t Len = strlen(TimeString);
+		osDelay(25); // This delay is needed or second screen won print
+		SendUartMsg(TimeString);
 	}
 
 	// A queue containing the button pressed for Screen 2 is received - it is checked to see which button is pressed and take action
@@ -114,6 +139,10 @@ void PollingRoutine()
 			}
 			break;
 		case 2:
+			PresentTime.Hours = 10;
+			PresentTime.Minutes = 59;
+			PresentTime.Seconds = 0;
+			HAL_RTC_SetTime(&hrtc, &PresentTime, RTC_FORMAT_BIN);
 			strcat(myString, helloFromST);
 			strcat(myString, screen2);
 			break;

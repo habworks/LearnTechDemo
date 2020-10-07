@@ -27,7 +27,7 @@ public:
 
     virtual ~Screen3Presenter() {};
 
-    virtual void analogUpdate(float value);
+    virtual void analogUpdate_Presenter(float value);
 
 private:
     Screen3Presenter();

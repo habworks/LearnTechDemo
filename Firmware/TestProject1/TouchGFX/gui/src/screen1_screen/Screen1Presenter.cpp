@@ -19,9 +19,9 @@ void Screen1Presenter::deactivate()
 
 }
 
-void Screen1Presenter::uartMsgRdy()
+void Screen1Presenter::uartMsgRdy_Presenter()
 {
-	view.uartMsgRdy();
+	view.uartMsgRdy_View();
 }
 
 

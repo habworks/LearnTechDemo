@@ -15,7 +15,7 @@ public:
     virtual void setupScreen();
     virtual void tearDownScreen();
     // Uart added
-    virtual void uartMsgRdy();
+    virtual void uartMsgRdy_View();
     // Screen 1 added functions
     virtual void toggleButton1Clicked();
     virtual void button2Clicked();

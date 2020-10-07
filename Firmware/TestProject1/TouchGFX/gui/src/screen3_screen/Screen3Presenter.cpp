@@ -18,7 +18,7 @@ void Screen3Presenter::deactivate()
 }
 
 
-void Screen3Presenter::analogUpdate(float value)
+void Screen3Presenter::analogUpdate_Presenter(float value)
 {
-	view.analogUpdate(value);
+	view.analogUpdate_View(value);
 }

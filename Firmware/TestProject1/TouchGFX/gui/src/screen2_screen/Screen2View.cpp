@@ -33,6 +33,9 @@ void Screen2View::tearDownScreen()
 //   1. Depending on the state of global var for Screen 1 button Enable or Disable Click
 //   2. Call a function in the presenter to take care of button clicks on screen 1
 // This action is only possible if you are in screen 1
+// Note: Passing information from the GUI to the hardware is much easire than hardware to GUI.
+// From the corresponding view function load a global var(s) - you can operate on these vars later to make things happen
+// Probably best not to take action here - but I am not sure you can not.
 void Screen2View::toggleButton1Clicked()
 {
 	if (screen1ButtonClicked.Status.button1 == 0)

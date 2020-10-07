@@ -12,9 +12,9 @@ public:
     
     virtual ~ModelListener() {}
 
-    virtual void uartMsgRdy() {}
+    virtual void uartMsgRdy_Presenter() {}
 
-    virtual void analogUpdate(float) {}
+    virtual void analogUpdate_Presenter(float) {}
 
     void bind(Model* m)
     {

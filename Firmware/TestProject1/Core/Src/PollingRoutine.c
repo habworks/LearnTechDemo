@@ -2,6 +2,9 @@
  * PollingRoutine.c
  * Hab Collector
  * Test1
+ * Working here is:
+ * 	UART6 in IRQ mode
+ * 	ADC in DMA mode
  */
 
 #include "main.h"

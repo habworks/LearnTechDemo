@@ -1,3 +1,4 @@
+# Added for C Language
 # Prerequisites
 *.d
 
@@ -50,3 +51,24 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+#Added for Eclipse
+#Ignore the Debug Folder and everything in it
+Firmware/TestProject1/Debug/*
+.metadata
+.settings/
+
+#Ignore these specific file types
+*.rar
+*.o
+*.d
+*.crf
+*.htm
+*.dep
+*.map
+*.bak
+*.axf
+*.lnp
+*.lst
+*.ini
+*.hex

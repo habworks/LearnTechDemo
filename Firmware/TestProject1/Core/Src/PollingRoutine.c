@@ -11,6 +11,8 @@
 #include "PollingRoutine.h"
 #include "string.h"
 #include "cmsis_os.h"  // included for typedef of osSemaphoreId
+#include "ff_gen_drv.h"
+#include "sd_diskio.h"
 
 // FOR EVERYTHING BUT ADC STUFF
 extern UART_HandleTypeDef huart6;
@@ -38,6 +40,14 @@ volatile uint8_t Flag2 = 0;
 
 // FOR RTC
 extern RTC_HandleTypeDef hrtc;
+
+// FOR FATFS
+FATFS SDFatFs;
+FIL MyFile;
+char SDPath[4];
+uint8_t workBuffer[2*_MAX_SS];
+uint8_t FAT_Error = 0;
+
 
 // FOR ALL
 Type_PresentScreen PresentScreen = OPEN_SCREEN;
@@ -76,6 +86,17 @@ void PollingRoutine()
 	RTC_TimeTypeDef PresentTime;
 	RTC_DateTypeDef PresentDate;
 	uint16_t FirstRead;
+
+	  FRESULT res;                                          /* FatFs function common result code */
+	  uint32_t byteswritten, bytesread;                     /* File write/read counts */
+	  uint8_t wtext[] = "This is STM32 working with FatFs"; /* File write buffer */
+	  uint8_t rtext[100];
+	  uint8_t DstFileNamae[50];
+
+
+	 static uint8_t DstFileNumber = 0;
+
+
 	if (msgRdyFlag)
 	{
 		xSemaphoreGive(binarySemUartMsgHandle);
@@ -95,9 +116,68 @@ void PollingRoutine()
 			}
 			else
 			{
+				DstFileNumber++;
+				sprintf(DstFileNamae,"0:DestinationFile_%d.txt",DstFileNumber);
 				strcat(myString, permission);
+				// ST stuff
+				/*##-2- Register the file system object to the FatFs module ##############*/
+				if(f_mount(&SDFatFs, (TCHAR const*)SDPath, 0) != FR_OK)
+				{
+				  /* FatFs Initialization Error */
+					FAT_Error = 1;
+				  Error_Handler();
+				}
+				else
+				{
+					// Test 1
+					/*##-1- Create and Open a new text file object with write access #####*/
+					if(f_open(&MyFile, "0:STM32C.TXT", FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
+					{
+					  /* 'STM32.TXT' file Open for write Error */
+						FAT_Error = 3;
+						Error_Handler();
+					}
+
+					/*##-2- Write data to the text file ################################*/
+					res = f_write(&MyFile, wtext, sizeof(wtext), (void *)&byteswritten);
+					if((byteswritten == 0) || (res != FR_OK))
+					{
+					/* 'STM32.TXT' file Write or EOF Error */
+					  FAT_Error = 4;
+					  Error_Handler();
+					}
+
+					/*##-6- Close the open text file #################################*/
+					f_close(&MyFile);
+
+					// Test 2
+					// Copy Src To Dst File
+					FIL Fsrc, Fdst;
+					BYTE buffer[1000];
+					UINT br, bw;
+					if (f_open(&Fsrc, "0:SrcFile.txt", FA_READ) != FR_OK)
+						Error_Handler();
+					if (f_open(&Fdst, DstFileNamae, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
+						Error_Handler();
+					for (;;)
+					{
+						f_read(&Fsrc, buffer, sizeof buffer, &br);  /* Read a chunk of data from the source file */
+						if (br == 0)
+							break; /* error or eof */
+						f_write(&Fdst, buffer, br, &bw);            /* Write it to the destination file */
+						if (bw < br)
+							break; /* error or disk full */
+					}
+					f_close(&Fsrc);
+					f_close(&Fdst);
+
+					// Format to print
+					strcat(myString, helloFromST);
+					strcat(myString, screen1);
+				}
 			}
 			break;
+
 		case 2:
 			HAL_RTC_WaitForSynchro(&hrtc);
 			do // This while loop is needed or the get time will not update correctly
@@ -106,11 +186,9 @@ void PollingRoutine()
 				HAL_RTC_GetTime(&hrtc, &PresentTime, RTC_FORMAT_BIN);
 				HAL_RTC_GetDate(&hrtc, &PresentDate, RTC_FORMAT_BIN);
 			}while (FirstRead != PresentTime.SubSeconds);
-
+			// Format to print time string
 			memset(TimeString, 0, sizeof(TimeString));
-			sprintf(TimeString,"Time: %d : %d : %d :%d : %d\r\n",PresentTime.Hours, PresentTime.Minutes, PresentTime.Seconds, PresentTime.SubSeconds, PresentTime.SecondFraction);
-			strcat(myString, helloFromST);
-			strcat(myString, screen1);
+			sprintf(TimeString,"Time: %02d : %02d : %02d\r\n",PresentTime.Hours, PresentTime.Minutes, PresentTime.Seconds);
 			break;
 		}
 		SendUartMsg(myString);
@@ -140,7 +218,7 @@ void PollingRoutine()
 			break;
 		case 2:
 			PresentTime.Hours = 10;
-			PresentTime.Minutes = 59;
+			PresentTime.Minutes = 0;
 			PresentTime.Seconds = 0;
 			HAL_RTC_SetTime(&hrtc, &PresentTime, RTC_FORMAT_BIN);
 			strcat(myString, helloFromST);
@@ -219,6 +297,7 @@ void AnalogTaskPoll()
 			ADC_UpddateDisplay = 1;
 			osDelay(25);
 		}
+		Flag1 = 0;
 	}
 
 }
@@ -236,7 +315,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 void defaultTaskPoll()
 {
 
-	if (PresentScreen == SCREEN_3)
+	if ((PresentScreen == SCREEN_3) && (Flag1 == 1))
 	{
 		osSignalSet(taskAnalogInputHandle, (BIT_0 | BIT_1));
 	}

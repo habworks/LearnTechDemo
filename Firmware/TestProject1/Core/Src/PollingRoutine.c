@@ -13,6 +13,7 @@
 #include "cmsis_os.h"  // included for typedef of osSemaphoreId
 #include "ff_gen_drv.h"
 #include "sd_diskio.h"
+#include "usbd_cdc_if.h"
 
 // FOR EVERYTHING BUT ADC STUFF
 extern UART_HandleTypeDef huart6;
@@ -47,6 +48,11 @@ FIL MyFile;
 char SDPath[4];
 uint8_t workBuffer[2*_MAX_SS];
 uint8_t FAT_Error = 0;
+
+// FOR USB
+extern USBD_HandleTypeDef hUsbDeviceFS;
+extern int8_t VCP_retrieveInputData(uint8_t* Buf, uint32_t *Len);
+uint8_t UsbRxBuffer[100];
 
 
 // FOR ALL
@@ -87,16 +93,26 @@ void PollingRoutine()
 	RTC_DateTypeDef PresentDate;
 	uint16_t FirstRead;
 
-	  FRESULT res;                                          /* FatFs function common result code */
-	  uint32_t byteswritten, bytesread;                     /* File write/read counts */
-	  uint8_t wtext[] = "This is STM32 working with FatFs"; /* File write buffer */
-	  uint8_t rtext[100];
-	  uint8_t DstFileNamae[50];
+	// FAT FS STUFF
+	FRESULT res;                                          /* FatFs function common result code */
+	uint32_t byteswritten, bytesread;                     /* File write/read counts */
+	uint8_t wtext[] = "This is STM32 working with FatFs"; /* File write buffer */
+	uint8_t rtext[100];
+	uint8_t DstFileNamae[50];
+	static uint8_t DstFileNumber = 0;
 
+	// USB STUFF
+	uint8_t UsbTxBuffer[] = "Hello Hab from USB VCP\r\n";
+	uint16_t UsbRxDataSize = 0;
+	if (hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED)
+	{
+		if (VCP_retrieveInputData(UsbRxBuffer, &UsbRxDataSize) !=0)
+		{
+			SendUartMsg(UsbRxBuffer);
+		}
+	}
 
-	 static uint8_t DstFileNumber = 0;
-
-
+	// Check to send UART data transmit
 	if (msgRdyFlag)
 	{
 		xSemaphoreGive(binarySemUartMsgHandle);
@@ -179,7 +195,7 @@ void PollingRoutine()
 			break;
 
 		case 2:
-			HAL_RTC_WaitForSynchro(&hrtc);
+			HAL_RTC_WaitForSynchro(&hrtc);  // Hab do you need this???
 			do // This while loop is needed or the get time will not update correctly
 			{
 				FirstRead = PresentTime.SubSeconds;
@@ -189,6 +205,8 @@ void PollingRoutine()
 			// Format to print time string
 			memset(TimeString, 0, sizeof(TimeString));
 			sprintf(TimeString,"Time: %02d : %02d : %02d\r\n",PresentTime.Hours, PresentTime.Minutes, PresentTime.Seconds);
+			if (hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED)
+				CDC_Transmit_FS(UsbTxBuffer, sizeof(UsbTxBuffer));
 			break;
 		}
 		SendUartMsg(myString);

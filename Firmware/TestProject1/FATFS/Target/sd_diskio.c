@@ -326,7 +326,7 @@ DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
     {
       /* Slow path, fetch each sector a part and memcpy to destination buffer */
       int i;
-      uint8_t ret; //Hab Edit
+      uint8_t ret; // Hab Edit
       for (i = 0; i < count; i++)
       {
         ret = BSP_SD_ReadBlocks_DMA((uint32_t*)scratch, (uint32_t)sector++, 1);
